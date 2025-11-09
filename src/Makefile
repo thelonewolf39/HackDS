@@ -20,7 +20,7 @@ DESTDIR ?= ../rootfs
 PREFIX = /system
 
 # Targets
-all: libhackds init gameloader menu
+all: libhackds init gameloader menu settings
 
 # libhackds - File format library
 libhackds:
@@ -44,15 +44,26 @@ menu: libhackds
 		$(SDL_LIBS) $(ZLIB_LIBS) -o menu/hackds-menu
 	$(STRIP) menu/hackds-menu
 
+# Settings menu
+settings: libhackds
+	$(CC) $(CFLAGS) $(SDL_CFLAGS) menu/settings_menu.c \
+		$(SDL_LIBS) -o menu/hackds-settings
+	$(STRIP) menu/hackds-settings
+
 # Install
 install: all
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -d $(DESTDIR)$(PREFIX)/lib
 	install -d $(DESTDIR)$(PREFIX)/include
+	install -d $(DESTDIR)/sbin
 
 	install -m 755 init/hackds-init $(DESTDIR)/sbin/init
 	install -m 755 gameloader/hackds-gameloader $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 menu/hackds-menu $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 menu/hackds-settings $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 updater/hackds_updater.py $(DESTDIR)$(PREFIX)/bin/hackds-updater
+	install -m 755 settings/bluetooth_manager.py $(DESTDIR)$(PREFIX)/bin/bluetooth-manager
+	install -m 755 settings/wifi_manager.py $(DESTDIR)$(PREFIX)/bin/wifi-manager
 	install -m 644 libhackds/libhackds.a $(DESTDIR)$(PREFIX)/lib/
 	install -m 644 libhackds/hackds_format.h $(DESTDIR)$(PREFIX)/include/
 
@@ -62,5 +73,6 @@ clean:
 	rm -f init/hackds-init
 	rm -f gameloader/hackds-gameloader
 	rm -f menu/hackds-menu
+	rm -f menu/hackds-settings
 
-.PHONY: all libhackds init gameloader menu install clean
+.PHONY: all libhackds init gameloader menu settings install clean

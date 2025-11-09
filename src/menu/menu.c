@@ -35,10 +35,13 @@ typedef struct {
     SDL_Renderer *renderer;
     TTF_Font *font_large;
     TTF_Font *font_small;
+    TTF_Font *font_tiny;
     game_entry_t *games;
     int game_count;
     int selected_index;
     int scroll_offset;
+    int update_available;
+    char update_version[32];
 } menu_state_t;
 
 static int scan_games(menu_state_t *state);
@@ -47,6 +50,8 @@ static void render_text(SDL_Renderer *renderer, TTF_Font *font,
                        const char *text, int x, int y, SDL_Color color);
 static int launch_game(const char *game_path);
 static void cleanup(menu_state_t *state);
+static void check_for_updates(menu_state_t *state);
+static void trigger_update(void);
 
 int main(int argc, char *argv[]) {
     (void)argc;
@@ -102,8 +107,9 @@ int main(int argc, char *argv[]) {
     // Load fonts (you'd need to include a font file in the system)
     state.font_large = TTF_OpenFont("/system/share/fonts/default.ttf", 32);
     state.font_small = TTF_OpenFont("/system/share/fonts/default.ttf", 20);
+    state.font_tiny = TTF_OpenFont("/system/share/fonts/default.ttf", 16);
 
-    if (!state.font_large || !state.font_small) {
+    if (!state.font_large || !state.font_small || !state.font_tiny) {
         fprintf(stderr, "TTF_OpenFont failed: %s\n", TTF_GetError());
         // Continue without fonts - we can still show colored boxes
     }
@@ -115,6 +121,9 @@ int main(int argc, char *argv[]) {
     printf("Scanning for games...\n");
     scan_games(&state);
     printf("Found %d games\n", state.game_count);
+
+    // Check for updates
+    check_for_updates(&state);
 
     // Main loop
     int running = 1;
@@ -170,6 +179,27 @@ int main(int argc, char *argv[]) {
                             printf("Rescanning games...\n");
                             scan_games(&state);
                             break;
+
+                        case SDLK_u:
+                            // Check for updates
+                            printf("Checking for updates...\n");
+                            check_for_updates(&state);
+                            break;
+
+                        case SDLK_i:
+                            // Install update if available
+                            if (state.update_available) {
+                                printf("Installing update...\n");
+                                trigger_update();
+                            }
+                            break;
+
+                        case SDLK_F1:
+                        case SDLK_TAB:
+                            // Open settings menu
+                            printf("Opening settings...\n");
+                            system("/system/bin/hackds-settings");
+                            break;
                     }
                     break;
 
@@ -183,11 +213,26 @@ int main(int argc, char *argv[]) {
                                 state.selected_index++;
                             break;
                         case SDL_CONTROLLER_BUTTON_A:
+                        case SDL_CONTROLLER_BUTTON_X:
+                            // X on PS5, A on Xbox - Launch game
                             if (state.game_count > 0) {
                                 launch_game(state.games[state.selected_index].path);
                             }
                             break;
+                        case SDL_CONTROLLER_BUTTON_Y:
+                        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                            // Triangle on PS5 - Check for updates
+                            printf("Checking for updates...\n");
+                            check_for_updates(&state);
+                            break;
+                        case SDL_CONTROLLER_BUTTON_BACK:
+                        case SDL_CONTROLLER_BUTTON_GUIDE:
+                            // Options button on PS5 - Open settings
+                            printf("Opening settings...\n");
+                            system("/system/bin/hackds-settings");
+                            break;
                         case SDL_CONTROLLER_BUTTON_START:
+                            // Plus button - Exit
                             running = 0;
                             break;
                     }
@@ -327,8 +372,27 @@ static void render_menu(menu_state_t *state) {
                    SCREEN_WIDTH - 150, 30, text);
     }
 
+    // Draw update notification if available
+    int y_offset = 80;
+    if (state->update_available) {
+        SDL_Color update_color = {255, 200, 50, 255};
+        SDL_SetRenderDrawColor(state->renderer, 200, 150, 0, 255);
+        SDL_Rect update_bar = {0, y_offset, SCREEN_WIDTH, 40};
+        SDL_RenderFillRect(state->renderer, &update_bar);
+
+        if (state->font_small) {
+            char update_text[128];
+            snprintf(update_text, sizeof(update_text),
+                    "Update Available: %s - Press 'I' to Install",
+                    state->update_version);
+            render_text(state->renderer, state->font_small, update_text,
+                       40, y_offset + 10, (SDL_Color){0, 0, 0, 255});
+        }
+        y_offset += 40;
+    }
+
     // Draw games list
-    int y = 120;
+    int y = y_offset + 40;
     int visible_count = 8;
 
     for (int i = state->scroll_offset;
@@ -354,9 +418,13 @@ static void render_menu(menu_state_t *state) {
 
     // Draw controls hint
     if (state->font_small) {
-        render_text(state->renderer, state->font_small,
-                   "UP/DOWN: Select  |  ENTER: Play  |  R: Refresh  |  ESC: Exit",
-                   40, SCREEN_HEIGHT - 40, text);
+        const char *hint = "UP/DOWN: Select  |  ENTER: Play  |  F1/TAB: Settings  |  U: Updates  |  ESC: Exit";
+        render_text(state->renderer, state->font_small, hint, 40, SCREEN_HEIGHT - 60, text);
+
+        // Controller hint
+        const char *controller_hint = "Controller: D-Pad: Navigate  |  X: Play  |  Triangle: Updates  |  Options: Settings";
+        render_text(state->renderer, state->font_tiny,
+                   controller_hint, 40, SCREEN_HEIGHT - 35, (SDL_Color){150, 150, 150, 255});
     }
 
     SDL_RenderPresent(state->renderer);
@@ -415,9 +483,83 @@ static void cleanup(menu_state_t *state) {
 
     if (state->font_large) TTF_CloseFont(state->font_large);
     if (state->font_small) TTF_CloseFont(state->font_small);
+    if (state->font_tiny) TTF_CloseFont(state->font_tiny);
     if (state->renderer) SDL_DestroyRenderer(state->renderer);
     if (state->window) SDL_DestroyWindow(state->window);
 
     TTF_Quit();
     SDL_Quit();
+}
+
+static void check_for_updates(menu_state_t *state) {
+    // Run the update checker in silent mode
+    FILE *fp = popen("/system/bin/hackds-updater check 2>/dev/null", "r");
+    if (!fp) {
+        printf("Failed to run update checker\n");
+        return;
+    }
+
+    char buffer[256];
+    state->update_available = 0;
+
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        // Look for "Update available:" in output
+        if (strstr(buffer, "Update available:") != NULL) {
+            state->update_available = 1;
+
+            // Extract version number
+            char *version_start = strstr(buffer, ": ");
+            if (version_start) {
+                version_start += 2;
+                char *version_end = strchr(version_start, '\n');
+                if (version_end) *version_end = '\0';
+
+                strncpy(state->update_version, version_start,
+                       sizeof(state->update_version) - 1);
+                state->update_version[sizeof(state->update_version) - 1] = '\0';
+            }
+
+            printf("Update found: %s\n", state->update_version);
+            break;
+        }
+    }
+
+    pclose(fp);
+
+    if (!state->update_available) {
+        printf("No updates available\n");
+    }
+}
+
+static void trigger_update(void) {
+    printf("Triggering system update...\n");
+
+    // Fork and run the updater
+    pid_t pid = fork();
+    if (pid < 0) {
+        fprintf(stderr, "Fork failed\n");
+        return;
+    }
+
+    if (pid == 0) {
+        // Child process - run updater
+        char *args[] = {"/system/bin/hackds-updater", "update", NULL};
+        execv("/system/bin/hackds-updater", args);
+
+        fprintf(stderr, "Failed to launch updater\n");
+        exit(1);
+    }
+
+    // Parent - wait for updater to finish
+    int status;
+    waitpid(pid, &status, 0);
+
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        printf("Update completed successfully!\n");
+        printf("System will reboot in 5 seconds...\n");
+        sleep(5);
+        system("sudo reboot");
+    } else {
+        printf("Update failed!\n");
+    }
 }
