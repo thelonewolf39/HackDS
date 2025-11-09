@@ -1,0 +1,52 @@
+# Build directories
+build/
+output/
+rootfs/
+
+# Downloaded sources
+kernel/
+rpi-firmware/
+rpi-tools/
+
+# Compiled binaries
+*.o
+*.a
+*.so
+*.so.*
+src/init/hackds-init
+src/gameloader/hackds-gameloader
+src/menu/hackds-menu
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Images and packages
+*.img
+*.hdsg
+*.hdsm
+*.hdss
+*.hdsh
+*.zip
+*.tar.gz
+*.tar.xz
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+*.log
+tmp/
+*.tmp
+
+# System files
+Thumbs.db
+.directory
