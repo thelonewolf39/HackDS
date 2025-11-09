@@ -1,0 +1,12 @@
+{
+  "name": "Particle System Demo",
+  "version": "1.0.0",
+  "author": "HackDS Team",
+  "description": "A C++ particle system demo. Click and drag to create particles!",
+  "engine": "cpp",
+  "entrypoint": "game",
+  "resolution": [1280, 720],
+  "requires": {
+    "libraries": ["SDL2"]
+  }
+}

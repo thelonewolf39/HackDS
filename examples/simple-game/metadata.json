@@ -1,0 +1,13 @@
+{
+  "name": "Bouncing Balls Demo",
+  "version": "1.0.0",
+  "author": "HackDS Team",
+  "description": "A simple bouncing balls demo game. Press SPACE to add more balls!",
+  "engine": "python",
+  "entrypoint": "main.py",
+  "resolution": [1280, 720],
+  "requires": {
+    "python_version": ">=3.7",
+    "libraries": ["pygame"]
+  }
+}
