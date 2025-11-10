@@ -54,7 +54,7 @@ All formats use custom binary structures for efficiency.
 
 **Total time: 15 minutes** - No building required!
 
-1. **Download** latest release: [Releases Page](https://github.com/yourusername/HackDS/releases/latest)
+1. **Download** latest release: [Releases Page](https://github.com/thelonewolf39/HackDS/releases/latest)
 2. **Extract** the ZIP file to get the `.img` file
 3. **Flash** with balenaEtcher: https://etcher.balena.io/
 4. **Boot** your Raspberry Pi Zero 2W and enjoy! 🎮
