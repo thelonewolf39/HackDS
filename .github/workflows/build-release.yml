@@ -32,7 +32,7 @@ jobs:
           python3 python3-pip \
           qemu-user-static debootstrap \
           parted dosfstools wget rsync \
-          kpartx fdisk sfdisk \
+          kpartx \
           zip
 
     - name: Build HackDS
