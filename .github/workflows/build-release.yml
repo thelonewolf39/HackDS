@@ -1,0 +1,112 @@
+name: Build HackDS Image
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v0.1.0, v0.2.0, etc.
+  workflow_dispatch:  # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Free up disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo apt-get clean
+        df -h
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git bc bison flex libssl-dev make \
+          gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+          device-tree-compiler \
+          python3 python3-pip \
+          qemu-user-static debootstrap \
+          parted dosfstools wget rsync \
+          kpartx fdisk sfdisk \
+          zip
+
+    - name: Build HackDS
+      run: |
+        chmod +x build-all.sh
+        chmod +x scripts/*.sh
+        ./build-all.sh
+
+    - name: Compress image
+      run: |
+        cd output
+        zip hackds-${{ github.ref_name }}.img.zip hackds-*.img
+        sha256sum hackds-*.img > hackds-${{ github.ref_name }}.sha256
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          output/hackds-*.img.zip
+          output/hackds-*.sha256
+        body: |
+          # HackDS ${{ github.ref_name }}
+
+          ## Download and Flash
+
+          1. **Download**: `hackds-${{ github.ref_name }}.img.zip`
+          2. **Extract**: Unzip to get the .img file
+          3. **Flash**: Use balenaEtcher or Rufus
+          4. **Boot**: Insert SD card into Raspberry Pi Zero 2W
+
+          ## What's Included
+
+          - Custom Linux kernel for Pi Zero 2W
+          - HackDS system with GUI menu
+          - WiFi & Bluetooth support
+          - PS5 DualSense controller support
+          - Auto-update system
+          - Example games
+
+          ## SHA256 Checksum
+
+          See `hackds-${{ github.ref_name }}.sha256` for verification.
+
+          ## First Boot
+
+          ```bash
+          # Connect to WiFi
+          wifi-manager connect "YourNetwork" "password"
+
+          # Pair PS5 controller
+          bluetooth-manager ps5-setup
+
+          # Check for updates
+          hackds-updater check
+          ```
+
+          ## Documentation
+
+          - [Quick Start Guide](https://github.com/${{ github.repository }}/blob/main/QUICKSTART.md)
+          - [Settings Guide](https://github.com/${{ github.repository }}/blob/main/docs/SETTINGS_GUIDE.md)
+          - [Auto-Update Setup](https://github.com/${{ github.repository }}/blob/main/UPDATE_SETUP.md)
+
+          ---
+
+          **Note**: First boot may take 30-60 seconds. Be patient!
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: hackds-image
+        path: |
+          output/hackds-*.img.zip
+          output/hackds-*.sha256
+        retention-days: 90

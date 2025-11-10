@@ -50,17 +50,47 @@ All formats use custom binary structures for efficiency.
 
 ## Quick Start
 
-1. **Build the OS**: See `QUICKSTART.md` for step-by-step instructions
-2. **Flash to SD Card**: Write the image to your microSD card
-3. **Boot Your Pi**: Insert card and power on
-4. **Play Games**: Use the GUI menu to select and launch games
-5. **Stay Updated**: Press `U` to check for updates from GitHub
+### 🎯 Easiest Way: Download Pre-Built Image (Recommended!)
 
-See `UPDATE_SETUP.md` for configuring auto-updates.
+**Total time: 15 minutes** - No building required!
 
-## Building
+1. **Download** latest release: [Releases Page](https://github.com/yourusername/HackDS/releases/latest)
+2. **Extract** the ZIP file to get the `.img` file
+3. **Flash** with balenaEtcher: https://etcher.balena.io/
+4. **Boot** your Raspberry Pi Zero 2W and enjoy! 🎮
 
-See `docs/BUILD.md` for build instructions.
+📖 **Full guide**: See `NO_BUILD_GUIDE.md` - Just download, flash, and play!
+
+---
+
+### 🔨 Build It Yourself (Advanced)
+
+**Windows Users (No WSL):**
+
+1. Install Docker Desktop: https://www.docker.com/products/docker-desktop
+2. Double-click `docker-build-simple.bat` and wait 30-60 minutes
+3. Flash `output\hackds-0.1.0.img` to SD card
+4. Boot and enjoy!
+
+📖 **Full guide**: See `BUILD_ON_WINDOWS.md`
+
+**Linux/Mac Users:**
+
+1. Follow `QUICKSTART.md` for step-by-step instructions
+2. Flash the built image to your SD card
+3. Boot and play!
+
+📖 **Full guide**: See `docs/BUILD.md`
+
+## Building Options
+
+| Method | Time | Difficulty | Guide |
+|--------|------|------------|-------|
+| **Download Pre-Built** | 15 min | ⭐ Easy | `NO_BUILD_GUIDE.md` |
+| Windows (Docker) | 60 min | ⭐⭐ Medium | `BUILD_ON_WINDOWS.md` |
+| Linux/WSL | 60 min | ⭐⭐⭐ Advanced | `docs/BUILD.md` |
+
+💡 **Recommendation**: Use pre-built images unless you're modifying the code!
 
 ## Controller & Settings
 
