@@ -1,4 +1,5 @@
 # HackDS Operating System
+[![Build HackDS Image](https://github.com/thelonewolf39/HackDS/actions/workflows/build-release.yml/badge.svg)](https://github.com/thelonewolf39/HackDS/actions/workflows/build-release.yml)
 
 A custom gaming operating system for Raspberry Pi Zero 2W
 
